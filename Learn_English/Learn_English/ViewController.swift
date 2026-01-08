@@ -8,7 +8,7 @@
 import UIKit
 import WebKit
 
-class ViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
+class ViewController: UIViewController, WKNavigationDelegate {
     private var webView: WKWebView!
     
     override func viewDidLoad() {
@@ -19,63 +19,33 @@ class ViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
     
     private func setupWebView() {
         let config = WKWebViewConfiguration()
-        config.allowsInlineMediaPlayback = true
-        config.mediaTypesRequiringUserActionForPlayback = []
-        
-        webView = WKWebView(frame: .zero, configuration: config)
-        webView.uiDelegate = self
+        webView = WKWebView(frame: view.bounds, configuration: config)
         webView.navigationDelegate = self
-        webView.translatesAutoresizingMaskIntoConstraints = false
-        
+        webView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         view.addSubview(webView)
-        
-        // Auto Layout constraints
-        NSLayoutConstraint.activate([
-            webView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            webView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            webView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            webView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
-        ])
     }
     
     private func loadThemeContent() {
-        // Спосіб 1: HTML + CSS разом (НАДІЙНИЙ)
         guard let htmlPath = Bundle.main.path(forResource: "index", ofType: "html") else {
             print("❌ index.html НЕ ЗНАЙДЕНО")
             return
         }
         
         let htmlURL = URL(fileURLWithPath: htmlPath)
-        let baseDir = htmlURL.deletingLastPathComponent()
+        let baseDir = htmlURL.deletingLastPathComponent() // ✅ КЛЮЧОВА ЗМІНА
         
-        print("📁 Base directory: \(baseDir.path)")
-        print("🌐 HTML: \(htmlPath)")
-        
+        print("📁 BaseDir: \(baseDir.path)")
         webView.loadFileURL(htmlURL, allowingReadAccessTo: baseDir)
     }
-
     
-    // 3. Кнопка перемикання теми - ДОДАЙТЕ ЦЕ В ViewController.swift
-    private lazy var themeButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setTitle("🌙 Темна", for: .normal)
-        button.titleLabel?.font = UIFont.systemFont(ofSize: 16, weight: .medium)
-        button.backgroundColor = UIColor.systemGray6
-        button.layer.cornerRadius = 12
-        button.translatesAutoresizingMaskIntoConstraints = false
-        button.addTarget(self, action: #selector(toggleTheme), for: .touchUpInside)
-        return button
-    }()
-
-    @objc private func toggleTheme() {
-        let script = """
-        document.body.classList.toggle('dark');
-        localStorage.setItem('theme', document.body.classList.contains('dark') ? 'dark' : 'light');
-        """
-        webView.evaluateJavaScript(script) { _, error in
-            if let error = error {
-                print("Помилка перемикання теми: \(error)")
-            }
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        print("✅ ЗАВАНТАЖЕНО!")
+        diagnosticCSS()
+    }
+    
+    private func diagnosticCSS() {
+        webView.evaluateJavaScript("getComputedStyle(document.body).backgroundColor") { color, _ in
+            print("🎨 ФОН: \(color ?? "НЕ ПРАЦЮЄ")")
         }
     }
 }
